@@ -43,6 +43,7 @@ public class RateImageActivity extends FragmentActivity implements LoaderManager
 	private ImageView mFirstImageHolder = null;
 	private ImageView mSecondImageHolder = null;
 	private boolean flippingEnabled;
+	private int curImgIndex;
 	private ProgressDialog mLoadingDataProgressDlg = null;
 	
 	private List<RatableImage> mImagesList = null;
@@ -120,6 +121,7 @@ public class RateImageActivity extends FragmentActivity implements LoaderManager
 		// dismiss loading dialog
 		mLoadingDataProgressDlg.dismiss();
 		mLoadingDataProgressDlg = null;
+		curImgIndex = 0;
 		
 		if (imgList != null && imgList.size() > 0) {
 			mImagesList = imgList;
@@ -160,11 +162,11 @@ public class RateImageActivity extends FragmentActivity implements LoaderManager
     	if (mImagesList.size() > 1) { // if list contains 2 or more items
         	if(mImagesList.size() % 2 == 0) {
         		// if the size is even, load new item to first ImageView in ViewFlipper
-        		mSecondImageHolder.setImageResource(R.drawable.placeholder);
+        		//mSecondImageHolder.setImageResource(R.drawable.placeholder);
         		loadRemoteImgToImageView(mImagesList.get(0).getPath(), mFirstImageHolder, mImgLoadingBar);
         	} else {
         		// if the size is odd, load new items to second ImageView in ViewFlipper
-        		mFirstImageHolder.setImageResource(R.drawable.placeholder);
+        		//mFirstImageHolder.setImageResource(R.drawable.placeholder);
         		loadRemoteImgToImageView(mImagesList.get(0).getPath(), mSecondImageHolder, mImgLoadingBar);
         	}
     	} else if (mImagesList.size() > 0) { // if list contains 1 last item
@@ -174,6 +176,7 @@ public class RateImageActivity extends FragmentActivity implements LoaderManager
     		mSecondImageHolder.setVisibility(View.GONE);
     		mFirstImageHolder.setVisibility(View.GONE);    		
     		flippingEnabled = false;
+    		mImagesList = null;
     		// show list of liked images
     		showLikedImagesList();
 		}
@@ -194,15 +197,12 @@ public class RateImageActivity extends FragmentActivity implements LoaderManager
 				try {
 					URL url = new URL(params[0]);
 					// TODO: it's better to cache files locally, so there's no need to load them every time
-					
 					return BitmapFactory.decodeStream(url.openConnection().getInputStream());
 				} catch (MalformedURLException e) {
 					// TODO: handle exception
-					
 					return null;
 				} catch (IOException e) {
 					// TODO: handle exception
-					
 					return null;
 				}
 			}
