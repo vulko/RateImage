@@ -43,7 +43,6 @@ public class RateImageActivity extends FragmentActivity implements LoaderManager
 	private ImageView mFirstImageHolder = null;
 	private ImageView mSecondImageHolder = null;
 	private boolean flippingEnabled;
-	private int curImgIndex;
 	private ProgressDialog mLoadingDataProgressDlg = null;
 	
 	private List<RatableImage> mImagesList = null;
@@ -121,7 +120,6 @@ public class RateImageActivity extends FragmentActivity implements LoaderManager
 		// dismiss loading dialog
 		mLoadingDataProgressDlg.dismiss();
 		mLoadingDataProgressDlg = null;
-		curImgIndex = 0;
 		
 		if (imgList != null && imgList.size() > 0) {
 			mImagesList = imgList;
@@ -153,29 +151,7 @@ public class RateImageActivity extends FragmentActivity implements LoaderManager
     	return mGestureDetector.onTouchEvent(event);
 	}
     
-    private void loadNextImage() {
-/*    	if (curImgIndex < 8) {
-        	if(curImgIndex % 2 == 0) {
-        		// if curImgIndex even, load new item to first ImageView in ViewFlipper
-        		loadRemoteImgToImageView(mImagesList.get(curImgIndex + 1).getPath(), mFirstImageHolder, mImgLoadingBar);
-        		//loadRemoteImgToImageView(mImagesList.get(1).getPath(), mSecondImageHolder, mImgLoadingBar);
-        	} else {
-        		// if curImgIndex odd, load new items to second ImageView in ViewFlipper
-        		loadRemoteImgToImageView(mImagesList.get(curImgIndex + 1).getPath(), mSecondImageHolder, mImgLoadingBar);
-        		//loadRemoteImgToImageView(mImagesList.get(1).getPath(), mFirstImageHolder, mImgLoadingBar);
-        	}
-        	curImgIndex++;
-    	} else if (curImgIndex < 9) {
-    		curImgIndex++;
-    	} else {
-    		mSecondImageHolder.setVisibility(View.GONE);
-    		mFirstImageHolder.setVisibility(View.GONE);    		
-    		flippingEnabled = false;
-    		// show list of liked images
-    		showLikedImagesList();    		
-    	}
-    	*/
-    	
+    private void loadNextImage() {   	
     	if (mImagesList.size() > 0) {
 			mImagesList.remove(0);    		
     	}
@@ -217,12 +193,16 @@ public class RateImageActivity extends FragmentActivity implements LoaderManager
 			protected Bitmap doInBackground(String... params) {
 				try {
 					URL url = new URL(params[0]);
+					// TODO: it's better to cache files locally, so there's no need to load them every time
+					
 					return BitmapFactory.decodeStream(url.openConnection().getInputStream());
 				} catch (MalformedURLException e) {
 					// TODO: handle exception
+					
 					return null;
 				} catch (IOException e) {
 					// TODO: handle exception
+					
 					return null;
 				}
 			}

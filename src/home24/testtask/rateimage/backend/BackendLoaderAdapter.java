@@ -3,19 +3,23 @@ package home24.testtask.rateimage.backend;
 import home24.testtask.rateimage.datamodel.RatableImage;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import android.util.Log;
@@ -23,44 +27,44 @@ import android.util.Log;
 public class BackendLoaderAdapter {
 	
 	private static final String TAG = "BackendLoaderAdapter";
-	private static final String BACKEND_API_URL = "https://api-mobile.home24.com/api/v1/articles/?appDomain=1&limit=10";
+	private static final String BACKEND_API_URL = "https://api-mobile.home24.com/api/v1/articles?appDomain=1&limit=10";
 
 	public List<RatableImage> loadRemoteData() {
 		try {
-			//URI uri = new URIEncoder.encode(BACKEND_API_URL);
-			URI uri = new URI(
-				    "https", 
-				    "api-mobile.home24.com", 
-				    "/api/v1/articles/",
-				    "appDomain=1&limit=10",
-				    null);
-			DefaultHttpClient httpClient = new DefaultHttpClient();
-			HttpGet httpGet = new HttpGet(uri.toASCIIString());
-			httpGet.addHeader("Accept-Language", "de_DE");
-//			httpGet.addHeader("User-Agent", "Mozilla/5.0 ( compatible ) ");
-//			httpGet.addHeader("Accept", "*/*");
-
-			// restore cookies
+			String jstr = loadJSONStringfromURL(BACKEND_API_URL);
 			
-			HttpResponse httpResponse = httpClient.execute(httpGet);
-			HttpEntity httpEntity = httpResponse.getEntity();
-			InputStream is = httpEntity.getContent();
-			Log.e(TAG, httpResponse.toString());
-
-			BufferedReader reader = new BufferedReader(new InputStreamReader(is), 8);
-			StringBuilder sb = new StringBuilder();
-			String line = null;
-			while ((line = reader.readLine()) != null) {
-				sb.append(line + "n");
-				Log.e("parsing", line);
+			if (jstr == null) {
+				// TODO: apparently there should be raised an exception, so this won't occur.
+				return null;
 			}
-			is.close();
-			String json = sb.toString();
-			JSONObject jobj = new JSONObject(json);
 
+			JSONObject jobj = new JSONObject(jstr);
+			JSONArray jlinks = jobj.getJSONObject("_links").getJSONArray("articles");
+			ArrayList<String> linksList = new ArrayList<String>(jlinks.length());
+			// parse links to articles
+			for (int i = 0; i < jlinks.length(); ++i) {
+				jobj = (JSONObject) jlinks.get(i);
+				linksList.add(i, (String) jobj.get("href"));
+			}
 			
-			// the following is a workaround, as I keep getting responce:
-			// {"message":"No route found for \"GET \/api\/v1\/articles\/\""}
+			// load and parse img url and sku for each item
+			String sku, imgUrl;
+			List<RatableImage> retList = new LinkedList<RatableImage>();
+			for (String itemLink : linksList) {
+				jstr = loadJSONStringfromURL(itemLink);
+				jobj = new JSONObject(jstr);
+				sku = jobj.getString("sku");
+				jlinks = jobj.getJSONArray("media");
+				jobj = (JSONObject) jlinks.get(0);
+				imgUrl = jobj.getString("uri");
+				retList.add( new RatableImage(sku, imgUrl, false) );
+			}
+			
+			return retList;
+
+
+			/*
+			// workaround
 			Thread.sleep(1000); // immitate asynchronous behavior :)
 			List<RatableImage> retList = new LinkedList<RatableImage>();
 			retList.add(new RatableImage("1", "http://cdn.home24.net/images/media/catalog/product/135x135/png/r/e/relaxliege-listone-meshstoff-schwarz-413096.jpg", false));
@@ -75,6 +79,7 @@ public class BackendLoaderAdapter {
 			retList.add(new RatableImage("10", "http://cdn.home24.net/images/media/catalog/product/135x135/png/k/l/klappstuhl-schlossgarten-2er-set-flachstahl-eukalyptus-massiv-1808802.jpg", false));
 			return retList;
 			// end of workaround
+			*/
 			
 			
 			//Log.e("json", jobj.toString());
@@ -104,12 +109,37 @@ public class BackendLoaderAdapter {
 			
 			//return null;
 		} catch (Exception e) {
-			// TODO: instead of catching all exceptions, add throws declarations
-			//       for different types and catch them in Loader
+			// TODO: need to handle different types of exception, like connection error, parse json error etc
 			Log.e(TAG, "Error: " + e.toString());
-		}
+			return null;
+		}		
+	}
+	
+	private String loadJSONStringfromURL(String url) throws ClientProtocolException, IOException {
+		DefaultHttpClient httpClient = new DefaultHttpClient();
+		HttpGet httpGet = new HttpGet(url);
+		httpGet.addHeader("Accept-Language", "de_DE");
+//		httpGet.addHeader("User-Agent", "Mozilla/5.0 ( compatible ) ");
+//		httpGet.addHeader("Accept", "*/*");
+
+		// restore cookies
 		
-		return null;
+		HttpResponse httpResponse = httpClient.execute(httpGet);
+		HttpEntity httpEntity = httpResponse.getEntity();
+		InputStream is = httpEntity.getContent();
+		Log.e(TAG, httpResponse.toString());
+
+		BufferedReader reader = new BufferedReader(new InputStreamReader(is), 8);
+		StringBuilder sb = new StringBuilder();
+		String line = null;
+		
+		while ((line = reader.readLine()) != null) {
+			sb.append(line + "n");
+			//Log.e("parsing", line);
+		}
+		is.close();
+		
+		return sb.toString();		
 	}
 	
 }
